@@ -114,11 +114,6 @@ export default function ScrollCinemaSection() {
     if (!section || !video || !sceneA || !desc || !cinematic || !stats || !swiperRef.current)
       return
 
-    const isMobile =
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent,
-      ) || window.innerWidth < 768
-
     const swiper = new Swiper(swiperRef.current, {
       modules: [EffectCoverflow],
       effect: 'coverflow',
@@ -165,15 +160,19 @@ export default function ScrollCinemaSection() {
     }
     video.addEventListener('seeking', onSeeking)
     video.addEventListener('seeked', onSeeked)
-    if (isMobile) {
-      // iOS/Android : le seek programmé sans geste utilisateur est bloqué →
-      // lecture auto en boucle (le mode scroll des scènes reste inchangé)
+    video.pause()
+    // iOS/Android ignorent preload sans geste : on force le chargement,
+    // puis on « débloque » le seek au premier toucher (play → pause muet).
+    video.load()
+    const unlock = () => {
       video.muted = true
-      video.loop = true
-      video.play().catch(() => {})
-    } else {
-      video.pause()
+      const p = video.play()
+      if (p) p.then(() => video.pause()).catch(() => {})
+      window.removeEventListener('touchstart', unlock)
+      window.removeEventListener('pointerdown', unlock)
     }
+    window.addEventListener('touchstart', unlock, { passive: true })
+    window.addEventListener('pointerdown', unlock)
 
     // ── State ──
     let p = 0
@@ -293,7 +292,7 @@ export default function ScrollCinemaSection() {
       video!.style.transform = `scale(${scaleVal * entranceZoom})`
       video!.style.opacity = String(entranceOpacity)
 
-      if (!isMobile && video!.readyState >= 1 && video!.duration > 0) {
+      if (video!.readyState >= 1 && video!.duration > 0 && video!.paused) {
         const targetTime = clamp(smoothP) * video!.duration
         if (Math.abs(video!.currentTime - targetTime) > 0.008) {
           if (!isSeeking && !video!.seeking) {
@@ -338,6 +337,8 @@ export default function ScrollCinemaSection() {
       cancelAnimationFrame(rafId)
       video.removeEventListener('seeking', onSeeking)
       video.removeEventListener('seeked', onSeeked)
+      window.removeEventListener('touchstart', unlock)
+      window.removeEventListener('pointerdown', unlock)
       swiper.destroy(true, true)
     }
   }, [])
