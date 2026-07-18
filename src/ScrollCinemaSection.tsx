@@ -119,8 +119,8 @@ export default function ScrollCinemaSection() {
       slidesPerView: 'auto',
       centeredSlides: true,
       loop: true,
-      spaceBetween: 32,
-      coverflowEffect: { rotate: 30, stretch: 0, depth: 100, modifier: 1, slideShadows: false },
+      spaceBetween: 24,
+      coverflowEffect: { rotate: 18, stretch: 0, depth: 140, modifier: 1, slideShadows: false },
     })
 
     // ── Scramble states ──
@@ -271,7 +271,7 @@ export default function ScrollCinemaSection() {
       // ── Video blur + scale + scrub ──
       const subtleBase = clamp((smoothP - 0.1) / 0.45)
       const progressive = clamp((smoothP - 0.55) / 0.4)
-      const blurVal = subtleBase * 5 + progressive * 30
+      const blurVal = subtleBase * 4 + progressive * 8
       const scaleVal = 1.03 + clamp((smoothP - 0.1) / 0.9) * 0.08
       video!.style.filter = `blur(${blurVal}px)`
       video!.style.transform = `scale(${scaleVal * entranceZoom})`
@@ -405,7 +405,7 @@ export default function ScrollCinemaSection() {
               {STATS.map((card) => (
                 <div key={card.title} className="swiper-slide">
                   <div className="flex h-[480px] flex-col justify-between rounded-[28px] bg-white/[0.04] p-1.5 backdrop-blur-md">
-                    <div className="flex flex-1 flex-col justify-between rounded-[23px] border border-white/5 bg-black/45 p-8 backdrop-blur-md">
+                    <div className="flex flex-1 flex-col justify-between rounded-[23px] border border-white/5 bg-black/35 p-8 backdrop-blur-md">
                       <div>
                         <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/80">
                           {card.title}
