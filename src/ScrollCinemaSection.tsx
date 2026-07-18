@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import Swiper from 'swiper'
 import { EffectCoverflow } from 'swiper/modules'
 import 'swiper/css'
@@ -100,6 +101,7 @@ export default function ScrollCinemaSection() {
   const cinematicRef = useRef<HTMLDivElement>(null)
   const statsRef = useRef<HTMLDivElement>(null)
   const swiperRef = useRef<HTMLDivElement>(null)
+  const swiperInstRef = useRef<Swiper | null>(null)
   const titleRefs = useRef<(HTMLSpanElement | null)[]>([])
 
   useEffect(() => {
@@ -112,6 +114,11 @@ export default function ScrollCinemaSection() {
     if (!section || !video || !sceneA || !desc || !cinematic || !stats || !swiperRef.current)
       return
 
+    const isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent,
+      ) || window.innerWidth < 768
+
     const swiper = new Swiper(swiperRef.current, {
       modules: [EffectCoverflow],
       effect: 'coverflow',
@@ -122,6 +129,7 @@ export default function ScrollCinemaSection() {
       spaceBetween: 24,
       coverflowEffect: { rotate: 18, stretch: 0, depth: 140, modifier: 1, slideShadows: false },
     })
+    swiperInstRef.current = swiper
 
     // ── Scramble states ──
     const scrambles: ScrambleState[] = titleRefs.current
@@ -157,7 +165,15 @@ export default function ScrollCinemaSection() {
     }
     video.addEventListener('seeking', onSeeking)
     video.addEventListener('seeked', onSeeked)
-    video.pause()
+    if (isMobile) {
+      // iOS/Android : le seek programmé sans geste utilisateur est bloqué →
+      // lecture auto en boucle (le mode scroll des scènes reste inchangé)
+      video.muted = true
+      video.loop = true
+      video.play().catch(() => {})
+    } else {
+      video.pause()
+    }
 
     // ── State ──
     let p = 0
@@ -277,7 +293,7 @@ export default function ScrollCinemaSection() {
       video!.style.transform = `scale(${scaleVal * entranceZoom})`
       video!.style.opacity = String(entranceOpacity)
 
-      if (video!.readyState >= 1 && video!.duration > 0) {
+      if (!isMobile && video!.readyState >= 1 && video!.duration > 0) {
         const targetTime = clamp(smoothP) * video!.duration
         if (Math.abs(video!.currentTime - targetTime) > 0.008) {
           if (!isSeeking && !video!.seeking) {
@@ -400,6 +416,23 @@ export default function ScrollCinemaSection() {
           ref={statsRef}
           className="cinema-stats absolute inset-0 z-10 flex items-center overflow-hidden"
         >
+          {/* Flèches de navigation */}
+          <button
+            type="button"
+            aria-label="Carte précédente"
+            onClick={() => swiperInstRef.current?.slidePrev()}
+            className="absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-black/60 md:left-8"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            aria-label="Carte suivante"
+            onClick={() => swiperInstRef.current?.slideNext()}
+            className="absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-black/60 md:right-8"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
           <div ref={swiperRef} className="swiper cinema-swiper">
             <div className="swiper-wrapper">
               {STATS.map((card) => (
