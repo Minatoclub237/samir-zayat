@@ -96,6 +96,7 @@ const clamp = (v: number) => Math.max(0, Math.min(1, v))
 export default function ScrollCinemaSection() {
   const sectionRef = useRef<HTMLElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const scrimRef = useRef<HTMLDivElement>(null)
   const sceneARef = useRef<HTMLDivElement>(null)
   const descRef = useRef<HTMLDivElement>(null)
   const cinematicRef = useRef<HTMLDivElement>(null)
@@ -107,11 +108,12 @@ export default function ScrollCinemaSection() {
   useEffect(() => {
     const section = sectionRef.current
     const video = videoRef.current
+    const scrim = scrimRef.current
     const sceneA = sceneARef.current
     const desc = descRef.current
     const cinematic = cinematicRef.current
     const stats = statsRef.current
-    if (!section || !video || !sceneA || !desc || !cinematic || !stats || !swiperRef.current)
+    if (!section || !video || !scrim || !sceneA || !desc || !cinematic || !stats || !swiperRef.current)
       return
 
     const swiper = new Swiper(swiperRef.current, {
@@ -283,14 +285,19 @@ export default function ScrollCinemaSection() {
         }
       }
 
-      // ── Video blur + scale + scrub ──
+      // ── Video scale + scrub (le flou est géré par le scrim, Firefox-safe) ──
       const subtleBase = clamp((smoothP - 0.1) / 0.45)
       const progressive = clamp((smoothP - 0.55) / 0.4)
-      const blurVal = subtleBase * 4 + progressive * 8
       const scaleVal = 1.03 + clamp((smoothP - 0.1) / 0.9) * 0.08
-      video!.style.filter = `blur(${blurVal}px)`
       video!.style.transform = `scale(${scaleVal * entranceZoom})`
       video!.style.opacity = String(entranceOpacity)
+
+      // ── Scrim : flou (backdrop-filter) + voile sombre pour la lisibilité ──
+      const blurVal = 2 + subtleBase * 4 + progressive * 8
+      const tint = 0.28 + subtleBase * 0.12 + progressive * 0.15
+      scrim!.style.setProperty('backdrop-filter', `blur(${blurVal}px)`)
+      scrim!.style.setProperty('-webkit-backdrop-filter', `blur(${blurVal}px)`)
+      scrim!.style.backgroundColor = `rgba(0,0,0,${tint * entranceOpacity})`
 
       if (video!.readyState >= 1 && video!.duration > 0 && video!.paused) {
         const targetTime = clamp(smoothP) * video!.duration
@@ -353,7 +360,13 @@ export default function ScrollCinemaSection() {
           playsInline
           preload="auto"
           src="/media/orthodontiste.mp4"
-          className="absolute inset-0 z-0 h-full w-full object-cover opacity-0 will-change-[transform,filter,opacity] pointer-events-none"
+          className="absolute inset-0 z-0 h-full w-full object-cover opacity-0 will-change-[transform,opacity] pointer-events-none"
+        />
+
+        {/* Scrim : flou + assombrissement cross-browser (Firefox-safe) */}
+        <div
+          ref={scrimRef}
+          className="pointer-events-none absolute inset-0 z-[1] will-change-[backdrop-filter]"
         />
 
         {/* Dot grid */}
